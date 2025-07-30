@@ -17,7 +17,7 @@ export async function POST(request: NextRequest) {
         .values({
           email: testEmail,
           name: "Test User",
-          password: null, // No password for skip user
+          password: "123456789", // No password for skip user
         })
         .returning()
 

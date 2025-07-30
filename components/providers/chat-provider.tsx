@@ -2,7 +2,7 @@
 
 import type React from "react"
 import { createContext, useContext, useCallback, useEffect } from "react"
-import { useChat, type Message } from "ai/react"
+import { useChat, type Message } from "@ai-sdk/react"
 import { useAuth } from "./auth-provider"
 import { useToast } from "@/hooks/use-toast"
 
