@@ -1,6 +1,5 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  reactStrictMode: true,
   eslint: {
     ignoreDuringBuilds: true,
   },
@@ -8,22 +7,8 @@ const nextConfig = {
     ignoreBuildErrors: true,
   },
   images: {
-    remotePatterns: [
-      {
-        protocol: 'https',
-        hostname: 'avatars.githubusercontent.com',
-      },
-      {
-        protocol: 'https',
-        hostname: 'lh3.googleusercontent.com',
-      },
-      {
-        protocol: 'https',
-        hostname: 'cdn.discordapp.com',
-      },
-    ],
     unoptimized: true,
   },
-};
+}
 
-export default nextConfig;
+export default nextConfig

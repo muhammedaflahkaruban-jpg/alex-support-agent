@@ -1,90 +1,87 @@
-# Mr. Alex - AI-Powered Customer Support Agent
+# Alex AI Agent - Intelligent Support System
 
-Mr. Alex is an intelligent AI-powered customer support system designed to provide 24/7 automated customer service for small and medium businesses. It leverages Google's Gemini API for human-like conversations, real-time data management, and multi-language support.
+A comprehensive AI-powered support agent built with Next.js, Gemini AI, and enterprise-grade optimizations.
 
 ## Features
 
--   **Intelligent Conversational AI**: Powered by Google Gemini 1.5 Flash for context-aware, human-like interactions.
--   **Dynamic Business Configuration**: Customize Alex's knowledge base with your company's data (products, services, CEO, etc.).
--   **Real-time Data Access**: Integrates with Firebase Firestore for real-time data and Neon PostgreSQL for structured business data.
--   **Multi-language Support**: Communicate in English, Malayalam, and Hindi.
--   **User Authentication**: Secure sign-in with Google, GitHub, and email/password via Firebase Authentication.
--   **Mobile-First Design**: Responsive and intuitive user interface across all devices.
--   **Analytics Dashboard**: Gain insights into conversation trends and agent performance.
+- **24/7 AI Support**: Powered by Google's Gemini AI
+- **Multi-Language Support**: Communicate in 100+ languages
+- **Context Caching**: Optimized response caching for better performance
+- **Multi-Function Integration**: Email, database lookup, status monitoring
+- **Real-time Chat Interface**: Responsive and intuitive UI
+- **Cost-Optimized**: Efficient API usage and caching strategies
 
-## Getting Started
+## Installation
 
-### 1. Environment Variables
+1. Clone the repository
+2. Install dependencies:
+   \`\`\`bash
+   npm install
+   \`\`\`
 
-Create a `.env.local` file in the root of your project and add the following environment variables. Replace the placeholder values with your actual credentials.
+3. Copy environment variables:
+   \`\`\`bash
+   cp .env.example .env.local
+   \`\`\`
 
-\`\`\`
-# Firebase Configuration
-NEXT_PUBLIC_FIREBASE_API_KEY="YOUR_FIREBASE_API_KEY"
-NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN="YOUR_FIREBASE_AUTH_DOMAIN"
-NEXT_PUBLIC_FIREBASE_PROJECT_ID="YOUR_FIREBASE_PROJECT_ID"
-NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET="YOUR_FIREBASE_STORAGE_BUCKET"
-NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID="YOUR_FIREBASE_MESSAGING_SENDER_ID"
-NEXT_PUBLIC_FIREBASE_APP_ID="YOUR_FIREBASE_APP_ID"
-NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID="YOUR_FIREBASE_MEASUREMENT_ID"
+4. Configure your environment variables:
+   - `GEMINI_API_KEY`: Your Google Gemini API key
+   - `SMTP_*`: Email configuration for nodemailer
+   - `DATABASE_URL`: Database connection (optional)
 
-# Google Gemini AI Configuration
-GEMINI_API_KEY="YOUR_GEMINI_API_KEY"
+5. Run the development server:
+   \`\`\`bash
+   npm run dev
+   \`\`\`
 
-# Neon PostgreSQL Database
-DATABASE_URL="postgresql://user:password@host:port/database?sslmode=require"
-\`\`\`
+## Architecture
 
-### 2. Install Dependencies
+### Core Components
 
-\`\`\`bash
-pnpm install
-\`\`\`
+- **Chat Interface**: Real-time chat with Alex AI
+- **API Optimization**: Context caching and efficient request handling
+- **Multi-Function Support**: Integrated email, database, and status services
+- **Responsive Design**: Black and white theme with professional styling
 
-### 3. Database Setup
+### Optimization Features
 
-*   **Neon PostgreSQL**: Create a database on [Neon.tech](https://neon.tech) and copy your connection string to the `DATABASE_URL` in your `.env.local` file. The application will attempt to create the `company_data` table on first use.
-*   **Firebase**: Set up a Firebase project. Enable Authentication (Email/Password, Google, GitHub providers). Copy your Firebase project configuration to the `NEXT_PUBLIC_FIREBASE_` variables in `.env.local`.
+1. **Context Caching**: Reduces API calls and improves response times
+2. **Function Triggers**: Intelligent detection of user intent for multi-function execution
+3. **Efficient Memory Management**: Optimized conversation history handling
+4. **Cost Control**: Minimal thinking budget and optimized model usage
 
-### 4. Run the Development Server
+### Services
 
-\`\`\`bash
-pnpm dev
-\`\`\`
+- **Email Service**: Automated email notifications using nodemailer
+- **Database Service**: Fast lookup and search capabilities
+- **Status Service**: Real-time system health monitoring
+- **Cache Service**: In-memory caching with TTL support
 
-Open [http://localhost:3000](http://localhost:3000) in your browser to see the application.
+## Usage
 
-## Project Structure
-
--   `app/`: Next.js App Router pages and API routes.
-    -   `api/chat/route.ts`: API endpoint for AI chat interactions.
-    -   `api/company-data/route.ts`: API endpoint for saving/fetching business configuration.
-    -   `chat/`: Chat interface page.
-    -   `dashboard/`: User dashboard for business configuration.
--   `components/`: Reusable React components.
-    -   `auth/`: Authentication-related components (modals, protected routes).
-    -   `business-config/`: Form for company data input.
-    -   `chat/`: Chat UI components (header, message list, input, bubbles, typing indicator).
-    -   `layout/`: Header component.
-    -   `providers/`: Context providers (Auth, Chat, Theme).
-    -   `sections/`: Landing page sections (Hero, Features, CTA, Capabilities).
-    -   `ui/`: shadcn/ui components.
--   `lib/`: Utility functions and service integrations.
-    -   `firebase.ts`: Firebase initialization and client.
-    -   `neon-db.ts`: Neon PostgreSQL database client and functions.
-    -   `ai-prompt-generator.ts`: Logic for dynamically generating AI prompts.
-    -   `utils.ts`: General utility functions.
--   `public/`: Static assets.
--   `styles/`: Global CSS.
+1. Visit the landing page to learn about Alex's capabilities
+2. Click "Start Chat" to begin a conversation
+3. Ask questions or request assistance
+4. Alex will automatically trigger relevant functions based on your queries
 
 ## Deployment
 
-This application is designed for seamless deployment on [Vercel](https://vercel.com). Ensure your environment variables are configured in your Vercel project settings for production deployments.
+1. Build the application:
+   \`\`\`bash
+   npm run build
+   \`\`\`
+
+2. Deploy to your preferred platform (Vercel, AWS, etc.)
+3. Configure production environment variables
+4. Set up external services (Redis for caching, database, email provider)
 
 ## Contributing
 
-Feel free to fork the repository, open issues, and submit pull requests.
+1. Fork the repository
+2. Create a feature branch
+3. Make your changes
+4. Submit a pull request
 
 ## License
 
-[MIT License](LICENSE)
+MIT License - see LICENSE file for details

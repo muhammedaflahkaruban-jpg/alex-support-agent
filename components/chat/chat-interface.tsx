@@ -1,84 +1,40 @@
 "use client"
 
-import { useEffect, useRef } from "react"
+import { useRef, useEffect } from "react"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Bot } from "lucide-react"
 import { MessageList } from "./message-list"
 import { MessageInput } from "./message-input"
-import { ChatHeader } from "./chat-header"
-import { TypingIndicator } from "./typing-indicator"
 import { useChat } from "@/components/providers/chat-provider"
-import { useAuth } from "@/components/providers/auth-provider"
-import { toast } from "sonner"
 
 export function ChatInterface() {
-  const { messages, addMessage, isLoading, error, clearMessages } = useChat()
-  const { user } = useAuth()
-  const chatContainerRef = useRef<HTMLDivElement>(null)
+  const { state } = useChat()
+  const messagesEndRef = useRef<HTMLDivElement>(null)
 
-  useEffect(() => {
-    if (error) {
-      toast.error("Chat Error", {
-        description: error,
-      })
-    }
-  }, [error])
-
-  useEffect(() => {
-    // Scroll to bottom on new message
-    if (chatContainerRef.current) {
-      chatContainerRef.current.scrollTop = chatContainerRef.current.scrollHeight
-    }
-  }, [messages])
-
-  const handleSendMessage = async (text: string) => {
-    if (!text.trim()) return
-
-    addMessage({
-      id: Date.now().toString(),
-      text,
-      sender: "user",
-      timestamp: new Date().toLocaleTimeString(),
-    })
-
-    try {
-      const response = await fetch("/api/chat", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ message: text, userId: user?.uid }), // Pass userId for context
-      })
-
-      if (!response.ok) {
-        const errorData = await response.json()
-        throw new Error(errorData.error || `HTTP error! status: ${response.status}`)
-      }
-
-      const data = await response.json()
-      addMessage({
-        id: Date.now().toString() + "-ai",
-        text: data.response,
-        sender: "ai",
-        timestamp: new Date().toLocaleTimeString(),
-      })
-    } catch (err) {
-      console.error("Error sending message:", err)
-      addMessage({
-        id: Date.now().toString() + "-error",
-        text: `Sorry, I encountered an error: ${err instanceof Error ? err.message : String(err)}. Please try again later.`,
-        sender: "ai",
-        timestamp: new Date().toLocaleTimeString(),
-      })
-    }
+  const scrollToBottom = () => {
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" })
   }
 
+  useEffect(() => {
+    scrollToBottom()
+  }, [state.messages, state.typingMessage])
+
   return (
-    <div className="flex flex-col h-full max-w-3xl mx-auto border rounded-lg shadow-lg bg-card">
-      <ChatHeader agentName="Mr. Alex" />
-      <div ref={chatContainerRef} className="flex-1 overflow-y-auto p-4 space-y-4">
-        <MessageList messages={messages} />
-        {isLoading && <TypingIndicator />}
-      </div>
-      <MessageInput onSendMessage={handleSendMessage} disabled={isLoading} />
+    <div className="flex-1 flex justify-center p-4">
+      <Card className="w-full max-w-4xl h-[calc(100vh-120px)] flex flex-col bg-card/50 backdrop-blur border-border/50">
+        <CardHeader className="pb-4 border-b border-border/50">
+          <CardTitle className="flex items-center space-x-2">
+            <Bot className="h-5 w-5 text-primary" />
+            <span>AI Support Chat</span>
+          </CardTitle>
+        </CardHeader>
+
+        <CardContent className="flex-1 flex flex-col p-0">
+          <MessageList />
+          <div ref={messagesEndRef} />
+          <MessageInput />
+        </CardContent>
+      </Card>
     </div>
   )
 }

@@ -1,109 +1,214 @@
 "use client"
 
 import type React from "react"
-import { createContext, useContext, useCallback, useEffect } from "react"
-import { useChat, type Message } from "@ai-sdk/react"
-import { useAuth } from "./auth-provider"
-import { useToast } from "@/hooks/use-toast"
+import { createContext, useContext, useReducer, useCallback } from "react"
 
-interface ChatContextType {
+// Types
+export interface Message {
+  id: string
+  role: "user" | "assistant"
+  content: string
+  timestamp: Date
+  isTyping?: boolean
+  functionResults?: any
+}
+
+export interface ChatState {
   messages: Message[]
-  input: string
-  handleInputChange: (e: React.ChangeEvent<HTMLInputElement> | React.ChangeEvent<HTMLTextAreaElement>) => void
-  handleSubmit: (e: React.FormEvent<HTMLFormElement>) => void
   isLoading: boolean
-  error: Error | undefined
-  append: (message: Message) => Promise<string | null | undefined>
-  reload: () => Promise<string | null | undefined>
-  stop: () => void
-  setMessages: React.Dispatch<React.SetStateAction<Message[]>>
-  clearMessages: () => void
+  error: string | null
+  typingMessage: string
+  connectionStatus: "connected" | "connecting" | "disconnected"
+}
+
+type ChatAction =
+  | { type: "ADD_MESSAGE"; payload: Message }
+  | { type: "SET_LOADING"; payload: boolean }
+  | { type: "SET_ERROR"; payload: string | null }
+  | { type: "SET_TYPING_MESSAGE"; payload: string }
+  | { type: "SET_CONNECTION_STATUS"; payload: ChatState["connectionStatus"] }
+  | { type: "CLEAR_MESSAGES" }
+  | { type: "UPDATE_LAST_MESSAGE"; payload: Partial<Message> }
+
+// Initial state
+const initialState: ChatState = {
+  messages: [
+    {
+      id: "welcome",
+      role: "assistant",
+      content: "Hello! I'm Alex, your AI support agent. How can I assist you today?",
+      timestamp: new Date(),
+    },
+  ],
+  isLoading: false,
+  error: null,
+  typingMessage: "",
+  connectionStatus: "connected",
+}
+
+// Reducer
+function chatReducer(state: ChatState, action: ChatAction): ChatState {
+  switch (action.type) {
+    case "ADD_MESSAGE":
+      return {
+        ...state,
+        messages: [...state.messages, action.payload],
+      }
+    case "SET_LOADING":
+      return {
+        ...state,
+        isLoading: action.payload,
+      }
+    case "SET_ERROR":
+      return {
+        ...state,
+        error: action.payload,
+      }
+    case "SET_TYPING_MESSAGE":
+      return {
+        ...state,
+        typingMessage: action.payload,
+      }
+    case "SET_CONNECTION_STATUS":
+      return {
+        ...state,
+        connectionStatus: action.payload,
+      }
+    case "CLEAR_MESSAGES":
+      return {
+        ...state,
+        messages: initialState.messages,
+      }
+    case "UPDATE_LAST_MESSAGE":
+      return {
+        ...state,
+        messages: state.messages.map((msg, index) =>
+          index === state.messages.length - 1 ? { ...msg, ...action.payload } : msg,
+        ),
+      }
+    default:
+      return state
+  }
+}
+
+// Context
+interface ChatContextType {
+  state: ChatState
+  dispatch: React.Dispatch<ChatAction>
+  sendMessage: (content: string) => Promise<void>
+  clearChat: () => void
 }
 
 const ChatContext = createContext<ChatContextType | undefined>(undefined)
 
-export function useChatContext() {
-  const context = useContext(ChatContext)
-  if (context === undefined) {
-    throw new Error("useChatContext must be used within a ChatProvider")
-  }
-  return context
-}
-
+// Provider
 export function ChatProvider({ children }: { children: React.ReactNode }) {
-  const { user } = useAuth()
-  const { toast } = useToast()
+  const [state, dispatch] = useReducer(chatReducer, initialState)
 
-  const {
-    messages,
-    input,
-    handleInputChange,
-    handleSubmit: originalHandleSubmit,
-    isLoading,
-    error,
-    append,
-    reload,
-    stop,
-    setMessages,
-  } = useChat({
-    api: "/api/chat",
-    body: {
-      userId: user?.uid, // Pass userId to the API route
-    },
-    onError: (err) => {
-      console.error("Chat error:", err)
-      toast({
-        title: "Chat Error",
-        description: err.message || "An error occurred during the chat.",
-        variant: "destructive",
-      })
-    },
-  })
+  const typeMessage = useCallback((text: string, callback: () => void) => {
+    let index = 0
+    dispatch({ type: "SET_TYPING_MESSAGE", payload: "" })
 
-  // Custom handleSubmit to ensure userId is always passed
-  const handleSubmit = useCallback(
-    async (e: React.FormEvent<HTMLFormElement>) => {
-      e.preventDefault()
-      if (!user?.uid) {
-        toast({
-          title: "Authentication Required",
-          description: "Please log in to start chatting with Alex.",
-          variant: "destructive",
-        })
-        return
+    const typeInterval = setInterval(() => {
+      if (index < text.length) {
+        dispatch({ type: "SET_TYPING_MESSAGE", payload: text.slice(0, index + 1) })
+        index++
+      } else {
+        clearInterval(typeInterval)
+        dispatch({ type: "SET_TYPING_MESSAGE", payload: "" })
+        callback()
       }
-      originalHandleSubmit(e)
+    }, 20) // Optimized for performance
+
+    return () => clearInterval(typeInterval)
+  }, [])
+
+  const sendMessage = useCallback(
+    async (content: string) => {
+      // Add user message
+      const userMessage: Message = {
+        id: `user-${Date.now()}`,
+        role: "user",
+        content,
+        timestamp: new Date(),
+      }
+
+      dispatch({ type: "ADD_MESSAGE", payload: userMessage })
+      dispatch({ type: "SET_LOADING", payload: true })
+      dispatch({ type: "SET_ERROR", payload: null })
+
+      try {
+        const response = await fetch("/api/chat", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            message: content,
+            history: state.messages,
+          }),
+        })
+
+        const data = await response.json()
+
+        if (!response.ok) {
+          throw new Error(data.error || `HTTP error! status: ${response.status}`)
+        }
+
+        const responseText = data.response || "I apologize, but I didn't receive a proper response."
+
+        // Type the response with animation
+        typeMessage(responseText, () => {
+          const assistantMessage: Message = {
+            id: `assistant-${Date.now()}`,
+            role: "assistant",
+            content: responseText,
+            timestamp: new Date(),
+            functionResults: data.functionResults,
+          }
+
+          dispatch({ type: "ADD_MESSAGE", payload: assistantMessage })
+          dispatch({ type: "SET_LOADING", payload: false })
+        })
+      } catch (error) {
+        console.error("Chat error:", error)
+        const errorText = "I apologize, but I encountered an error. Please try again in a moment."
+
+        typeMessage(errorText, () => {
+          const errorMessage: Message = {
+            id: `error-${Date.now()}`,
+            role: "assistant",
+            content: errorText,
+            timestamp: new Date(),
+          }
+
+          dispatch({ type: "ADD_MESSAGE", payload: errorMessage })
+          dispatch({ type: "SET_LOADING", payload: false })
+        })
+      }
     },
-    [originalHandleSubmit, user?.uid, toast],
+    [state.messages, typeMessage],
   )
 
-  const clearMessages = useCallback(() => {
-    setMessages([])
-    toast({
-      title: "Chat Cleared",
-      description: "Your conversation has been reset.",
-    })
-  }, [setMessages, toast])
-
-  // Effect to handle initial messages or load from storage if needed
-  useEffect(() => {
-    // You could load previous messages from Firebase/Neon here if desired
-    // For now, it starts fresh or uses messages from useChat hook
+  const clearChat = useCallback(() => {
+    dispatch({ type: "CLEAR_MESSAGES" })
   }, [])
 
   const value = {
-    messages,
-    input,
-    handleInputChange,
-    handleSubmit,
-    isLoading,
-    error,
-    append,
-    reload,
-    stop,
-    setMessages,
-    clearMessages,
+    state,
+    dispatch,
+    sendMessage,
+    clearChat,
   }
 
   return <ChatContext.Provider value={value}>{children}</ChatContext.Provider>
+}
+
+// Hook
+export function useChat() {
+  const context = useContext(ChatContext)
+  if (context === undefined) {
+    throw new Error("useChat must be used within a ChatProvider")
+  }
+  return context
 }

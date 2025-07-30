@@ -1,79 +1,72 @@
-// This service acts as an abstraction layer for database operations.
-// It can be extended to include more complex queries or ORM integrations.
+// Simulated database service - replace with your actual database
+interface DatabaseRecord {
+  id: string
+  title: string
+  content: string
+  category: string
+  tags: string[]
+}
 
-import { sql } from "@neondatabase/serverless"
-import type { CompanyData } from "@/types/company-data" // Assuming you have a types file for CompanyData
+class DatabaseService {
+  private data: DatabaseRecord[] = [
+    {
+      id: "1",
+      title: "Getting Started Guide",
+      content: "Welcome to our platform. Here's how to get started...",
+      category: "documentation",
+      tags: ["beginner", "setup", "guide"],
+    },
+    {
+      id: "2",
+      title: "API Documentation",
+      content: "Complete API reference for developers...",
+      category: "technical",
+      tags: ["api", "development", "reference"],
+    },
+    {
+      id: "3",
+      title: "Troubleshooting Common Issues",
+      content: "Solutions to frequently encountered problems...",
+      category: "support",
+      tags: ["troubleshooting", "issues", "solutions"],
+    },
+    {
+      id: "4",
+      title: "Billing and Pricing",
+      content: "Information about our pricing plans and billing...",
+      category: "billing",
+      tags: ["pricing", "billing", "plans"],
+    },
+    {
+      id: "5",
+      title: "Security Best Practices",
+      content: "How to keep your account and data secure...",
+      category: "security",
+      tags: ["security", "best-practices", "safety"],
+    },
+  ]
 
-export async function saveCompanyData(userId: string, data: CompanyData): Promise<void> {
-  try {
-    // Ensure the table exists. This is a simple way to handle it,
-    // for production, consider a proper migration system (e.g., Drizzle Kit migrations).
-    await sql`
-      CREATE TABLE IF NOT EXISTS company_data (
-        user_id TEXT PRIMARY KEY,
-        company_name TEXT,
-        ceo_name TEXT,
-        business_features TEXT,
-        products TEXT,
-        services TEXT,
-        values TEXT,
-        tone TEXT,
-        language TEXT,
-        alex_bio TEXT,
-        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-      );
-    `
+  async search(query: string): Promise<DatabaseRecord[]> {
+    if (!query) return []
 
-    await sql`
-      INSERT INTO company_data (user_id, company_name, ceo_name, business_features, products, services, values, tone, language, alex_bio)
-      VALUES (${userId}, ${data.companyName}, ${data.ceoName}, ${data.businessFeatures}, ${data.products}, ${data.services}, ${data.values}, ${data.tone}, ${data.language}, ${data.alexBio})
-      ON CONFLICT (user_id) DO UPDATE SET
-        company_name = EXCLUDED.company_name,
-        ceo_name = EXCLUDED.ceo_name,
-        business_features = EXCLUDED.business_features,
-        products = EXCLUDED.products,
-        services = EXCLUDED.services,
-        values = EXCLUDED.values,
-        tone = EXCLUDED.tone,
-        language = EXCLUDED.language,
-        alex_bio = EXCLUDED.alex_bio,
-        updated_at = CURRENT_TIMESTAMP;
-    `
-    console.log(`Company data saved for user: ${userId}`)
-  } catch (error) {
-    console.error("Error saving company data to Neon DB:", error)
-    throw new Error("Failed to save company data to database.")
+    const lowerQuery = query.toLowerCase()
+
+    return this.data.filter(
+      (record) =>
+        record.title.toLowerCase().includes(lowerQuery) ||
+        record.content.toLowerCase().includes(lowerQuery) ||
+        record.category.toLowerCase().includes(lowerQuery) ||
+        record.tags.some((tag) => tag.toLowerCase().includes(lowerQuery)),
+    )
+  }
+
+  async getById(id: string): Promise<DatabaseRecord | null> {
+    return this.data.find((record) => record.id === id) || null
+  }
+
+  async getByCategory(category: string): Promise<DatabaseRecord[]> {
+    return this.data.filter((record) => record.category === category)
   }
 }
 
-export async function getCompanyData(userId: string): Promise<CompanyData | null> {
-  try {
-    const result = await sql<CompanyData[]>`
-      SELECT company_name AS "companyName", ceo_name AS "ceoName", business_features AS "businessFeatures",
-             products, services, values, tone, language, alex_bio AS "alexBio"
-      FROM company_data
-      WHERE user_id = ${userId};
-    `
-
-    if (result.length > 0) {
-      return result[0]
-    }
-    return null
-  } catch (error) {
-    console.error("Error fetching company data from Neon DB:", error)
-    throw new Error("Failed to fetch company data from database.")
-  }
-}
-
-export async function checkDatabaseStatus() {
-  try {
-    await sql`SELECT 1`
-    return { ok: true, message: "Neon DB connected successfully." }
-  } catch (error) {
-    console.error("Neon DB connection failed:", error)
-    return {
-      ok: false,
-      message: `Neon DB connection failed: ${error instanceof Error ? error.message : String(error)}`,
-    }
-  }
-}
+export { DatabaseService, type DatabaseRecord }

@@ -4,10 +4,6 @@ import { sendEmail } from "@/lib/email-service"
 import { DatabaseService } from "@/lib/database-service"
 import { CacheService } from "@/lib/cache-service"
 import { StatusService } from "@/lib/status-service"
-import { db, companyDataTable } from "@/lib/neon-db"
-import { eq } from "drizzle-orm"
-import { streamText } from "ai"
-import { generateAlexSystemPrompt } from "@/lib/ai-prompt-generator"
 
 // Initialize services
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || "")
@@ -15,118 +11,68 @@ const dbService = new DatabaseService()
 const cacheService = new CacheService()
 const statusService = new StatusService()
 
-export const runtime = "edge" // Use edge runtime for AI streaming
 export const maxDuration = 30
 
 export async function POST(req: NextRequest) {
   try {
-    const { message, history, userId } = await req.json()
+    const { message, history } = await req.json()
 
     if (!process.env.GEMINI_API_KEY) {
       return NextResponse.json({
         response: "I'm sorry, but I'm not properly configured. Please check the API key configuration.",
-        error: true,
       })
     }
 
-    if (!userId) {
+    // Check cache first for optimization
+    const cacheKey = `chat:${message.toLowerCase().trim()}`
+    const cachedResponse = await cacheService.get(cacheKey)
+
+    if (cachedResponse) {
       return NextResponse.json({
-        response: "Authentication required. Please sign in to continue.",
-        error: true,
+        response: cachedResponse,
+        cached: true,
       })
     }
 
-    // Fetch company data from Neon DB
-    let companyData = null
-    try {
-      const result = await db.select().from(companyDataTable).where(eq(companyDataTable.userId, userId)).limit(1)
-      if (result.length > 0) {
-        companyData = result[0]
-      }
-    } catch (dbError) {
-      console.error("Error fetching company data from Neon DB:", dbError)
-      // Optionally, log to a monitoring service
-    }
+    // Analyze message for function triggers
+    const functionTriggers = await analyzeMessageForFunctions(message)
 
-    // Generate dynamic system prompt for Alex
-    const systemPrompt = generateAlexSystemPrompt(companyData)
+    // Execute triggered functions
+    const functionResults = await executeFunctions(functionTriggers, message)
 
-    const result = await streamText({
-      model: genAI.getGenerativeModel("gemini-2.0-flash-exp"), // Using Gemini 2.5 Flash as requested
-      system: systemPrompt,
-      messages: history?.slice(-10) || [], // Keep last 10 messages for context
-      onFinish: ({ text, usage, finishReason }) => {
-        console.log("AI Response Finished:", { text, usage, finishReason })
-        // Here you could save the conversation to Firebase or Neon if needed
-      },
+    // Prepare context with function results
+    const contextualMessage = await prepareContextualMessage(message, functionResults, history)
+
+    // Generate AI response with Gemini
+    const model = genAI.getGenerativeModel({
+      model: "gemini-1.5-flash",
+      systemInstruction: `You are Alex, an intelligent AI support agent. You are professional, helpful, and efficient. 
+                         You have access to various functions including email, database lookup, and status monitoring.
+                         Provide concise, accurate responses. Use the function results provided in context.
+                         Always maintain a friendly but professional tone.`,
     })
 
-    // Save chat session to database
-    try {
-      const sessionId = `${userId}_${Date.now()}`
-      const updatedHistory = [
-        ...history,
-        { role: "user", content: message },
-        { role: "assistant", content: result.text },
-      ]
-      await db.saveChatSession(userId, sessionId, updatedHistory)
-    } catch (error) {
-      console.warn("Could not save chat session:", error)
-    }
+    const result = await model.generateContent(contextualMessage)
+    const response = result.response
+    const aiResponse = response.text() || "I apologize, but I encountered an issue processing your request."
 
-    // Log analytics
-    try {
-      await db.logAnalytics(userId, "chat_message", {
-        message_length: message.length,
-        response_length: result.text.length,
-        has_company_data: !!companyData,
-        timestamp: new Date().toISOString(),
-      })
-    } catch (error) {
-      console.warn("Could not log analytics:", error)
-    }
+    // Cache the response for future optimization
+    await cacheService.set(cacheKey, aiResponse, 300) // 5 minutes cache
 
     return NextResponse.json({
-      response: result.text,
-      hasCompanyData: !!companyData,
-      companyName: companyData?.company_name || null,
+      response: aiResponse,
+      functionResults,
+      cached: false,
     })
-  } catch (error: any) {
-    console.error("Error in chat API route:", error)
-    // More specific error handling for different types of errors
-    if (error.name === "GoogleGenerativeAIError") {
-      return new Response(JSON.stringify({ error: `AI service error: ${error.message}` }), {
-        status: 500,
-        headers: { "Content-Type": "application/json" },
-      })
-    }
-    return new Response(
-      JSON.stringify({ error: error.message || "An unexpected error occurred during chat processing." }),
-      {
-        status: 500,
-        headers: { "Content-Type": "application/json" },
-      },
-    )
-  }
-}
+  } catch (error) {
+    console.error("Chat API error:", error)
 
-function prepareContextualMessage(message: string, history: any[], companyData: any): string {
-  let contextualMessage = message
-
-  // Add company context if available
-  if (companyData) {
-    contextualMessage += `\n\n[BUSINESS CONTEXT: This conversation is for ${companyData.company_name}]`
-  }
-
-  // Add conversation history for context
-  if (history && history.length > 0) {
-    contextualMessage += "\n\nRecent conversation:\n"
-    history.forEach((msg: any) => {
-      contextualMessage += `${msg.role}: ${msg.content}\n`
+    // Return a user-friendly error message
+    return NextResponse.json({
+      response: "I apologize, but I'm experiencing technical difficulties. Please try again in a moment.",
+      error: true,
     })
   }
-
-  return contextualMessage
 }
 
 async function analyzeMessageForFunctions(message: string): Promise<string[]> {
@@ -214,4 +160,23 @@ function extractSearchTerm(message: string): string {
   const words = message.toLowerCase().split(" ")
   const stopWords = ["find", "search", "lookup", "for", "the", "a", "an"]
   return words.filter((word) => !stopWords.includes(word)).join(" ")
+}
+
+async function prepareContextualMessage(message: string, functionResults: any, history: any[]): Promise<string> {
+  let contextualMessage = message
+
+  if (Object.keys(functionResults).length > 0) {
+    contextualMessage += "\n\nFunction Results:\n"
+    contextualMessage += JSON.stringify(functionResults, null, 2)
+  }
+
+  if (history && history.length > 0) {
+    const recentHistory = history.slice(-3)
+    contextualMessage += "\n\nRecent Conversation:\n"
+    recentHistory.forEach((msg: any) => {
+      contextualMessage += `${msg.role}: ${msg.content}\n`
+    })
+  }
+
+  return contextualMessage
 }

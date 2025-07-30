@@ -1,46 +1,46 @@
-import { cn } from "@/lib/utils"
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
+"use client"
+
+import { motion } from "framer-motion"
+import { Bot, User } from "lucide-react"
+import type { Message } from "@/components/providers/chat-provider"
+import { NeuralAnimation } from "@/components/ui/neural-animation"
 
 interface MessageBubbleProps {
-  text: string
-  sender: "user" | "ai"
-  timestamp: string
+  message: Message
 }
 
-export function MessageBubble({ text, sender, timestamp }: MessageBubbleProps) {
-  const isUser = sender === "user"
+export function MessageBubble({ message }: MessageBubbleProps) {
+  const isUser = message.role === "user"
+
   return (
-    <div className={cn("flex items-end gap-2", isUser ? "justify-end" : "justify-start")}>
-      {!isUser && (
-        <Avatar className="h-8 w-8">
-          <AvatarImage src="/placeholder-user.jpg" alt="AI avatar" />
-          <AvatarFallback>AI</AvatarFallback>
-        </Avatar>
-      )}
-      <div
-        className={cn(
-          "max-w-[70%] rounded-lg p-3 text-sm shadow-md",
-          isUser
-            ? "bg-primary text-primary-foreground rounded-br-none"
-            : "bg-muted text-muted-foreground rounded-bl-none",
-        )}
+    <div className={`flex items-start space-x-4 ${isUser ? "flex-row-reverse space-x-reverse" : ""}`}>
+      <motion.div
+        className={`relative p-3 rounded-full ${
+          isUser ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground"
+        }`}
+        whileHover={{ scale: 1.05 }}
+        transition={{ type: "spring", stiffness: 400, damping: 17 }}
       >
-        <p>{text}</p>
-        <span
-          className={cn(
-            "block text-xs mt-1",
-            isUser ? "text-primary-foreground/80 text-right" : "text-muted-foreground/80 text-left",
-          )}
+        {isUser ? <User className="h-5 w-5" /> : <Bot className="h-5 w-5" />}
+        {!isUser && <NeuralAnimation className="absolute -inset-1" size="sm" />}
+      </motion.div>
+
+      <div className={`max-w-[75%] ${isUser ? "text-right" : "text-left"}`}>
+        <motion.div
+          className={`p-4 rounded-2xl backdrop-blur-sm ${
+            isUser
+              ? "bg-primary text-primary-foreground rounded-br-md shadow-lg"
+              : "bg-card/80 border border-border/50 rounded-bl-md shadow-sm"
+          }`}
+          whileHover={{ scale: 1.01 }}
+          transition={{ type: "spring", stiffness: 400, damping: 17 }}
         >
-          {timestamp}
+          <p className="text-sm leading-relaxed whitespace-pre-wrap">{message.content}</p>
+        </motion.div>
+        <span className={`text-xs text-muted-foreground mt-2 block ${isUser ? "text-right" : "text-left"}`}>
+          {message.timestamp.toLocaleTimeString()}
         </span>
       </div>
-      {isUser && (
-        <Avatar className="h-8 w-8">
-          <AvatarImage src={null || "/placeholder.svg"} alt="User avatar" /> {/* Placeholder for user avatar */}
-          <AvatarFallback>You</AvatarFallback>
-        </Avatar>
-      )}
     </div>
   )
 }

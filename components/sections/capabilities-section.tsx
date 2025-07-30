@@ -1,49 +1,58 @@
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Bot, Database, Globe, Zap } from "lucide-react"
+"use client"
+
+import { motion } from "framer-motion"
+import { Mail, Database, Activity, MessageSquare } from "lucide-react"
+
+const capabilities = [
+  {
+    icon: <Mail className="h-5 w-5" />,
+    title: "Email Integration",
+    description: "Automated email responses and notifications",
+  },
+  {
+    icon: <Database className="h-5 w-5" />,
+    title: "Database Lookup",
+    description: "Real-time data retrieval from large datasets",
+  },
+  {
+    icon: <Activity className="h-5 w-5" />,
+    title: "Status Monitoring",
+    description: "Live system status and health checks",
+  },
+  {
+    icon: <MessageSquare className="h-5 w-5" />,
+    title: "Context Caching",
+    description: "Optimized conversation memory for better responses",
+  },
+]
 
 export function CapabilitiesSection() {
-  const capabilities = [
-    {
-      icon: <Bot className="h-8 w-8 text-primary" />,
-      title: "Intelligent AI Conversations",
-      description: "Leverage Google Gemini 1.5 Flash for human-like, context-aware interactions.",
-    },
-    {
-      icon: <Database className="h-8 w-8 text-primary" />,
-      title: "Real-time Data Integration",
-      description: "Seamlessly connect with your inventory, pricing, and customer data.",
-    },
-    {
-      icon: <Globe className="h-8 w-8 text-primary" />,
-      title: "Multi-language Support",
-      description: "Engage customers in English, Malayalam, and Hindi for broader reach.",
-    },
-    {
-      icon: <Zap className="h-8 w-8 text-primary" />,
-      title: "24/7 Automated Support",
-      description: "Provide instant assistance around the clock, reducing operational costs.",
-    },
-  ]
-
   return (
-    <section className="py-12 md:py-20 bg-muted">
-      <div className="container mx-auto px-4 md:px-6 text-center">
-        <h2 className="text-3xl md:text-4xl font-bold mb-8">Our Core Capabilities</h2>
-        <p className="text-lg text-muted-foreground mb-12 max-w-3xl mx-auto">
-          Mr. Alex is built with cutting-edge technology to empower your business with smart, efficient, and scalable
-          customer support.
-        </p>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
+    <section className="py-20">
+      <div className="container mx-auto px-4">
+        <div className="text-center mb-16">
+          <h2 className="text-4xl font-bold mb-4 bg-gradient-to-r from-foreground to-muted-foreground bg-clip-text text-transparent">
+            Advanced Capabilities
+          </h2>
+          <p className="text-xl text-muted-foreground">Multi-functional AI agent with enterprise integrations</p>
+        </div>
+
+        <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
           {capabilities.map((capability, index) => (
-            <Card key={index} className="flex flex-col items-center p-6 text-center">
-              <CardHeader className="pb-4">
-                <div className="mb-4">{capability.icon}</div>
-                <CardTitle className="text-xl font-semibold">{capability.title}</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <p className="text-muted-foreground">{capability.description}</p>
-              </CardContent>
-            </Card>
+            <motion.div
+              key={index}
+              className="p-6 border border-border/50 rounded-lg hover:shadow-md transition-all duration-300 bg-card/30 backdrop-blur-sm"
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.6, delay: index * 0.1 }}
+              whileHover={{ scale: 1.02, y: -2 }}
+            >
+              <div className="flex items-center space-x-3 mb-3">
+                <div className="text-primary">{capability.icon}</div>
+                <h3 className="font-semibold">{capability.title}</h3>
+              </div>
+              <p className="text-muted-foreground text-sm">{capability.description}</p>
+            </motion.div>
           ))}
         </div>
       </div>

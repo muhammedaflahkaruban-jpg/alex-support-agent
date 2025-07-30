@@ -1,45 +1,81 @@
-import { Button } from "@/components/ui/button"
+"use client"
+
 import Link from "next/link"
-import { Sparkles } from "lucide-react"
+import { motion } from "framer-motion"
+import { Button } from "@/components/ui/button"
+import { Badge } from "@/components/ui/badge"
+import { NeuralAnimation } from "@/components/ui/neural-animation"
 
 export function HeroSection() {
   return (
-    <section className="relative w-full py-12 md:py-24 lg:py-32 xl:py-48 bg-gradient-to-br from-slate-950 to-slate-800 text-white overflow-hidden">
-      <div className="absolute inset-0 z-0">
-        {/* Neural animation or subtle background pattern */}
-        <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,_var(--tw-gradient-stops))] from-slate-900 via-slate-950 to-black opacity-50" />
-        <div className="absolute inset-0 bg-[url('/placeholder.svg?height=800&width=1200')] bg-repeat opacity-10" />
-      </div>
-      <div className="container px-4 md:px-6 relative z-10">
-        <div className="flex flex-col items-center space-y-6 text-center">
-          <div className="space-y-4">
-            <h1 className="text-4xl font-bold tracking-tighter sm:text-5xl md:text-6xl lg:text-7xl/none animate-fade-in-up">
-              Mr. Alex: Your AI-Powered Customer Support Agent
+    <section className="py-20 px-4 relative overflow-hidden">
+      {/* Background gradient */}
+      <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-transparent to-secondary/5" />
+
+      <div className="container mx-auto text-center relative">
+        <motion.div
+          className="mb-8"
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.6 }}
+        >
+          <Badge variant="outline" className="mb-4 border-primary/50 text-primary bg-primary/10">
+            Powered by Gemini AI
+          </Badge>
+          <div className="relative inline-block mb-6">
+            <h1 className="text-5xl font-bold bg-gradient-to-r from-foreground via-primary to-foreground bg-clip-text text-transparent">
+              Meet Alex
+              <br />
+              <span className="text-muted-foreground">Your Intelligent Support Agent</span>
             </h1>
-            <p className="mx-auto max-w-[700px] text-gray-300 md:text-xl animate-fade-in-up delay-200">
-              Bridging the gap between affordable customer support and enterprise-grade AI for Indian MSMEs. From
-              Kozhikode, with a legacy of building businesses, Alex is here to help you grow.
-            </p>
+            <NeuralAnimation className="absolute -top-4 -right-4" size="lg" />
           </div>
-          <div className="space-x-4 animate-fade-in-up delay-400">
-            <Button
-              asChild
-              className="bg-emerald-500 hover:bg-emerald-600 text-white px-6 py-3 rounded-full text-lg font-semibold shadow-lg transition-all duration-300 hover:scale-105"
-            >
-              <Link href="/dashboard">
-                <Sparkles className="mr-2 h-5 w-5" />
-                Get Started
-              </Link>
+          <p className="text-xl text-muted-foreground max-w-2xl mx-auto mb-8">
+            Advanced AI-powered support system designed to provide intelligent, multilingual assistance with
+            enterprise-grade reliability and cost optimization.
+          </p>
+        </motion.div>
+
+        <motion.div
+          className="flex justify-center space-x-4 mb-12"
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.6, delay: 0.2 }}
+        >
+          <Link href="/chat">
+            <Button size="lg" className="bg-primary text-primary-foreground hover:bg-primary/90">
+              Try Alex Now
             </Button>
-            <Button
-              asChild
-              variant="outline"
-              className="border-gray-400 text-gray-200 hover:bg-gray-800 hover:text-white px-6 py-3 rounded-full text-lg font-semibold shadow-lg transition-all duration-300 hover:scale-105 bg-transparent"
+          </Link>
+          <Button size="lg" variant="outline" className="border-border hover:bg-muted bg-transparent">
+            Learn More
+          </Button>
+        </motion.div>
+
+        {/* Stats */}
+        <motion.div
+          className="grid grid-cols-2 md:grid-cols-4 gap-8 max-w-2xl mx-auto"
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.6, delay: 0.4 }}
+        >
+          {[
+            { value: "24/7", label: "Availability" },
+            { value: "100+", label: "Languages" },
+            { value: "99.9%", label: "Uptime" },
+            { value: "< 1s", label: "Response Time" },
+          ].map((stat, index) => (
+            <motion.div
+              key={stat.label}
+              className="text-center"
+              whileHover={{ scale: 1.05 }}
+              transition={{ type: "spring", stiffness: 400, damping: 17 }}
             >
-              <Link href="#features">Learn More</Link>
-            </Button>
-          </div>
-        </div>
+              <div className="text-3xl font-bold text-primary">{stat.value}</div>
+              <div className="text-muted-foreground">{stat.label}</div>
+            </motion.div>
+          ))}
+        </motion.div>
       </div>
     </section>
   )

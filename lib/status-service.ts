@@ -1,33 +1,70 @@
-// This service is intended to provide health checks for various parts of the application.
-// It aggregates status from different services like database, Firebase, and AI.
+interface SystemStatus {
+  overall: "healthy" | "degraded" | "down"
+  services: {
+    api: "up" | "down"
+    database: "up" | "down"
+    email: "up" | "down"
+    cache: "up" | "down"
+  }
+  uptime: string
+  responseTime: number
+  lastChecked: string
+}
 
-import { checkDatabaseStatus } from "./database-service"
-import { checkFirebaseStatus } from "./firebase"
-import { checkAIStatus } from "./ai-prompt-generator"
+class StatusService {
+  async getSystemStatus(): Promise<SystemStatus> {
+    // Simulate status checks - replace with actual health checks
+    const services = {
+      api: await this.checkApiHealth(),
+      database: await this.checkDatabaseHealth(),
+      email: await this.checkEmailHealth(),
+      cache: await this.checkCacheHealth(),
+    }
 
-export async function getOverallStatus() {
-  const results = await Promise.allSettled([checkDatabaseStatus(), checkFirebaseStatus(), checkAIStatus()])
+    const allUp = Object.values(services).every((status) => status === "up")
+    const overall = allUp ? "healthy" : "degraded"
 
-  const statuses = {
-    database:
-      results[0].status === "fulfilled"
-        ? results[0].value
-        : { ok: false, message: `Database check failed: ${results[0].reason}` },
-    firebase:
-      results[1].status === "fulfilled"
-        ? results[1].value
-        : { ok: false, message: `Firebase check failed: ${results[1].reason}` },
-    ai:
-      results[2].status === "fulfilled"
-        ? results[2].value
-        : { ok: false, message: `AI check failed: ${results[2].reason}` },
+    return {
+      overall,
+      services,
+      uptime: this.calculateUptime(),
+      responseTime: await this.measureResponseTime(),
+      lastChecked: new Date().toISOString(),
+    }
   }
 
-  const overallOk = statuses.database.ok && statuses.firebase.ok && statuses.ai.ok
+  private async checkApiHealth(): Promise<"up" | "down"> {
+    // Simulate API health check
+    return Math.random() > 0.1 ? "up" : "down"
+  }
 
-  return {
-    overall: overallOk ? "Operational" : "Degraded",
-    details: statuses,
-    timestamp: new Date().toISOString(),
+  private async checkDatabaseHealth(): Promise<"up" | "down"> {
+    // Simulate database health check
+    return Math.random() > 0.05 ? "up" : "down"
+  }
+
+  private async checkEmailHealth(): Promise<"up" | "down"> {
+    // Simulate email service health check
+    return Math.random() > 0.02 ? "up" : "down"
+  }
+
+  private async checkCacheHealth(): Promise<"up" | "down"> {
+    // Simulate cache health check
+    return Math.random() > 0.01 ? "up" : "down"
+  }
+
+  private calculateUptime(): string {
+    // Simulate uptime calculation
+    const uptimeHours = Math.floor(Math.random() * 720) + 720 // 30-60 days
+    const days = Math.floor(uptimeHours / 24)
+    const hours = uptimeHours % 24
+    return `${days}d ${hours}h`
+  }
+
+  private async measureResponseTime(): Promise<number> {
+    // Simulate response time measurement
+    return Math.floor(Math.random() * 100) + 50 // 50-150ms
   }
 }
+
+export { StatusService, type SystemStatus }
