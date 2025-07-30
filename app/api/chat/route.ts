@@ -4,6 +4,7 @@ import { sendEmail } from "@/lib/email-service"
 import { DatabaseService } from "@/lib/database-service"
 import { CacheService } from "@/lib/cache-service"
 import { StatusService } from "@/lib/status-service"
+import { aiInstructions } from '@/lib/ai-service/instructions'
 
 // Initialize services
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || "")
@@ -45,11 +46,8 @@ export async function POST(req: NextRequest) {
 
     // Generate AI response with Gemini
     const model = genAI.getGenerativeModel({
-      model: "gemini-1.5-flash",
-      systemInstruction: `You are Alex, an intelligent AI support agent. You are professional, helpful, and efficient. 
-                         You have access to various functions including email, database lookup, and status monitoring.
-                         Provide concise, accurate responses. Use the function results provided in context.
-                         Always maintain a friendly but professional tone.`,
+      model: "gemini-2.5-flash",
+      systemInstruction: aiInstructions.instructions,
     })
 
     const result = await model.generateContent(contextualMessage)
