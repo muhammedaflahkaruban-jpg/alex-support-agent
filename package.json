@@ -10,7 +10,7 @@
   },
   "dependencies": {
     "@ai-sdk/google": "^0.0.54",
-    "@ai-sdk/react": "^1.2.12",
+    "@ai-sdk/react": "latest",
     "@auth/core": "latest",
     "@auth/drizzle-adapter": "latest",
     "@aws-sdk/client-rds-data": "latest",
@@ -70,7 +70,7 @@
     "drizzle-orm": "latest",
     "embla-carousel-react": "latest",
     "expo-sqlite": "latest",
-    
+    "firebase": "latest",
     "framer-motion": "latest",
     "gel": "latest",
     "input-otp": "latest",

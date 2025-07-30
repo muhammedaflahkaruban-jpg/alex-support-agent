@@ -12,7 +12,7 @@ importers:
         specifier: ^0.0.54
         version: 0.0.54(zod@4.0.13)
       '@ai-sdk/react':
-        specifier: ^1.2.12
+        specifier: latest
         version: 1.2.12(react@19.0.0)(zod@4.0.13)
       '@auth/core':
         specifier: latest
@@ -25,7 +25,7 @@ importers:
         version: 3.856.0
       '@cloudflare/workers-types':
         specifier: latest
-        version: 4.20250726.0
+        version: 4.20250730.0
       '@electric-sql/pglite':
         specifier: latest
         version: 0.3.6
@@ -184,7 +184,7 @@ importers:
         version: 4.1.0
       drizzle-orm:
         specifier: latest
-        version: 0.44.4(084c14f88f573da4e6822f97a0d33e37)
+        version: 0.44.4(d0f8a2fcbc89d21a60180d3d0bfc033c)
       embla-carousel-react:
         specifier: latest
         version: 8.6.0(react@19.0.0)
@@ -987,8 +987,8 @@ packages:
     resolution: {integrity: sha512-ruv7Ae4J5dUYULmeXw1gmb7rYRz57OWCPM57pHojnLq/3Z1CK2lNSLTCVjxVk1F/TZHwOZZrOWi0ur95BbLxNQ==}
     engines: {node: '>=6.9.0'}
 
-  '@cloudflare/workers-types@4.20250726.0':
-    resolution: {integrity: sha512-NtM1yVBKJFX4LgSoZkVU0EDhWWvSb1vt6REO+uMYZRgx1HAfQz9GDN6bBB0B+fm2ZIxzt6FzlDbmrXpGJ2M/4Q==}
+  '@cloudflare/workers-types@4.20250730.0':
+    resolution: {integrity: sha512-hn0KhTnHxmkpNiHn6IGo9ffOqYqmJvrMApE2OT1b+2rp1AYCvFxMf7Xzgfb+1liylmpeyHQjKODhfXrxxIPXsg==}
 
   '@date-fns/tz@1.2.0':
     resolution: {integrity: sha512-LBrd7MiJZ9McsOgxqWX7AaxrDjcFVjWH/tIKJd7pnR7McaslGYOP1QmmiBXdJH/H/yLCT+rcQ7FaPBUxRGUtrg==}
@@ -8095,7 +8095,7 @@ snapshots:
       '@babel/helper-string-parser': 7.27.1
       '@babel/helper-validator-identifier': 7.27.1
 
-  '@cloudflare/workers-types@4.20250726.0': {}
+  '@cloudflare/workers-types@4.20250730.0': {}
 
   '@date-fns/tz@1.2.0': {}
 
@@ -11546,10 +11546,10 @@ snapshots:
     transitivePeerDependencies:
       - supports-color
 
-  drizzle-orm@0.44.4(084c14f88f573da4e6822f97a0d33e37):
+  drizzle-orm@0.44.4(d0f8a2fcbc89d21a60180d3d0bfc033c):
     optionalDependencies:
       '@aws-sdk/client-rds-data': 3.856.0
-      '@cloudflare/workers-types': 4.20250726.0
+      '@cloudflare/workers-types': 4.20250730.0
       '@electric-sql/pglite': 0.3.6
       '@libsql/client': 0.15.10(bufferutil@4.0.9)
       '@libsql/client-wasm': 0.15.10
