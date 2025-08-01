@@ -1,0 +1,162 @@
+/* Page layout wrappers and sections */
+.page { display: grid; gap: var(--space-4); }
+
+/* Hero with subtle animated gradient background */
+.hero {
+  position: relative; overflow: clip;
+  min-height: min(90vh, 60rem);
+  display: grid; place-items: center; padding: var(--space-4) var(--space-3);
+  isolation: isolate;
+}
+.hero__bg {
+  position: absolute; inset: 0; z-index: -1;
+  background: radial-gradient(120% 120% at 20% 10%, color-mix(in oklab, var(--primary) 25%, transparent) 0%, transparent 60%),
+              radial-gradient(120% 120% at 80% 90%, color-mix(in oklab, var(--primary) 18%, transparent) 0%, transparent 60%),
+              linear-gradient(180deg, var(--bg), var(--bg-elev));
+  transform: translateZ(0);
+  animation: bg-shift 12s linear infinite alternate;
+}
+@keyframes bg-shift {
+  0% { filter: hue-rotate(0deg); transform: scale(1); }
+  100% { filter: hue-rotate(10deg); transform: scale(1.02); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .hero__bg { animation: none; }
+}
+.hero__inner {
+  max-width: var(--content-max); text-align: center;
+  display: grid; gap: var(--space-3);
+}
+.hero__title { font-size: var(--fs-6); letter-spacing: -0.01em; }
+.hero__subtitle { font-size: var(--fs-3); color: var(--muted); }
+.hero__actions { display: flex; gap: var(--space-2); justify-content: center; flex-wrap: wrap; }
+
+/* Shared section styles */
+.section {
+  padding: var(--space-4) var(--space-3);
+}
+.section__header {
+  max-width: var(--content-max); margin-inline: auto; margin-bottom: var(--space-3);
+}
+.section__title { font-size: var(--fs-5); margin: 0; }
+.section__lead { font-size: var(--fs-2); color: var(--muted); }
+
+/* Features grid */
+.features__grid {
+  display: grid; gap: var(--space-2);
+  grid-template-columns: 1fr;
+  max-width: 75rem; margin-inline: auto;
+}
+.feature-card {
+  padding: var(--space-3); border: 1px solid var(--border); border-radius: var(--radius-2);
+  background: var(--bg-elev);
+}
+.feature-card__title { font-size: var(--fs-3); margin: 0 0 var(--space-1) 0; }
+.feature-card__text { margin: 0; color: var(--muted); }
+
+/* Showcase */
+.showcase__grid {
+  display: grid; gap: var(--space-2);
+  grid-template-columns: 1fr;
+  max-width: 90rem; margin-inline: auto;
+}
+.showcase-card {
+  border: 1px solid var(--border); border-radius: var(--radius-2); overflow: clip; background: var(--bg-elev);
+}
+.showcase-card__img { width: 100%; height: auto; display: block; }
+.showcase-card__caption { padding: var(--space-2); color: var(--muted); }
+
+/* Pricing */
+.pricing__grid {
+  display: grid; gap: var(--space-2);
+  grid-template-columns: 1fr;
+  max-width: 75rem; margin-inline: auto;
+}
+.price-card {
+  padding: var(--space-3); border: 1px solid var(--border); border-radius: var(--radius-2);
+  background: var(--bg-elev); display: grid; gap: var(--space-2); justify-items: start;
+}
+.price-card--featured {
+  outline: 2px solid color-mix(in oklab, var(--primary) 40%, transparent);
+}
+.price-card__tier { font-size: var(--fs-3); margin: 0; }
+.price-card__price { font-size: var(--fs-5); margin: 0; }
+.price-card__note { color: var(--muted); margin: 0; }
+
+/* Testimonials */
+.testimonials__list {
+  display: grid; gap: var(--space-2);
+  max-width: var(--content-max); margin-inline: auto;
+}
+.testimonial {
+  padding: var(--space-3); border-left: 4px solid var(--primary);
+  background: var(--bg-elev); border-radius: var(--radius-1);
+}
+.testimonial__text { margin: 0 0 var(--space-1) 0; font-size: var(--fs-2); }
+.testimonial__author { margin: 0; color: var(--muted); }
+
+/* FAQ */
+.faq__list {
+  display: grid; gap: var(--space-2);
+  max-width: var(--content-max); margin-inline: auto;
+}
+.faq-item {
+  border: 1px solid var(--border); border-radius: var(--radius-2);
+  padding: var(--space-2); background: var(--bg-elev);
+}
+.faq-item__summary {
+  cursor: pointer; font-weight: 600; font-size: var(--fs-2);
+}
+.faq-item__content { margin-top: var(--space-1); color: var(--muted); }
+
+/* CTA */
+.cta {
+  background: linear-gradient(180deg, var(--bg-elev), color-mix(in oklab, var(--bg-elev) 70%, var(--primary) 30%));
+}
+.cta__inner {
+  max-width: var(--content-max); margin-inline: auto; text-align: center;
+  display: grid; gap: var(--space-2); padding-block: var(--space-4);
+}
+.cta__title { font-size: var(--fs-5); margin: 0; }
+.cta__subtitle { font-size: var(--fs-2); color: var(--muted); margin: 0; }
+
+/* Responsive enhancements */
+@media (min-width: 40rem) {
+  .features__grid { grid-template-columns: repeat(2, 1fr); }
+  .pricing__grid { grid-template-columns: repeat(2, 1fr); }
+  .showcase__grid { grid-template-columns: repeat(2, 1fr); }
+}
+@media (min-width: 64rem) {
+  .features__grid { grid-template-columns: repeat(3, 1fr); }
+  .pricing__grid { grid-template-columns: repeat(3, 1fr); }
+}
+
+/* Focus states and accessibility */
+:where(a, button, summary, [tabindex]) {
+  outline: none;
+}
+:where(a, button, summary, [tabindex]):focus-visible {
+  outline: 2px solid var(--focus); outline-offset: 2px;
+}
+
+/* Section transitions via anchor navigation (:target) */
+.section {
+  transition: opacity var(--dur-2) var(--ease-std), transform var(--dur-2) var(--ease-std);
+  will-change: opacity, transform;
+}
+.section:target {
+  opacity: 1; transform: none;
+}
+.section:not(:target) {
+  opacity: 1; transform: none;
+}
+/* Optional progressive enhancement: View Transitions API (if supported) */
+@view-transition {
+  navigation: auto;
+}
+/* Notes:
+- For images, use width/height attributes and loading="lazy" decoding="async".
+- To extend themes, override CSS variables in :root or data-theme scopes.
+- Avoid heavy box-shadows; prefer subtle borders and color contrast for elevation.
+- Test at 320px width and ultrawide screens; grids adapt via repeat() and clamp().
+*/

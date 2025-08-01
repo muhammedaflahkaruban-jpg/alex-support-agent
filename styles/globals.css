@@ -1,90 +1,151 @@
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+/* Base reset and fluid scales */
+/* Use clamp() for typography and spacing, avoid fixed pixels for core layout */
+:root {
+  /* Color system: light theme */
+  --hue: 230;
+  --bg: hsl(var(--hue) 20% 98%);
+  --bg-elev: hsl(var(--hue) 25% 96%);
+  --text: hsl(var(--hue) 30% 10%);
+  --muted: hsl(var(--hue) 12% 40%);
+  --primary: hsl(255 85% 57%);
+  --primary-contrast: hsl(0 0% 100%);
+  --border: hsl(var(--hue) 18% 85%);
+  --focus: hsl(200 100% 45%);
 
-@layer utilities {
-  .text-balance {
-    text-wrap: balance;
-  }
+  /* Spacing + radius */
+  --space-1: clamp(0.5rem, 0.5rem + 0.5vw, 1rem);
+  --space-2: clamp(0.75rem, 0.6rem + 1vw, 1.5rem);
+  --space-3: clamp(1rem, 0.8rem + 1.2vw, 2rem);
+  --space-4: clamp(1.5rem, 1rem + 2vw, 3rem);
+  --radius-1: 0.5rem;
+  --radius-2: 1rem;
+
+  /* Typography scale */
+  --fs-1: clamp(0.9rem, 0.8rem + 0.3vw, 1rem);
+  --fs-2: clamp(1rem, 0.9rem + 0.6vw, 1.25rem);
+  --fs-3: clamp(1.25rem, 1.1rem + 1vw, 1.5rem);
+  --fs-4: clamp(1.5rem, 1.2rem + 1.5vw, 2rem);
+  --fs-5: clamp(2rem, 1.5rem + 2.5vw, 3rem);
+  --fs-6: clamp(2.5rem, 2rem + 3.5vw, 4rem);
+
+  /* Max readable width */
+  --content-max: 72ch;
+
+  /* Motion */
+  --dur-1: 160ms;
+  --dur-2: 240ms;
+  --ease-std: cubic-bezier(0.2, 0.6, 0.2, 1);
 }
 
-@layer base {
+@media (prefers-color-scheme: dark) {
   :root {
-    --background: 0 0% 100%;
-    --foreground: 0 0% 3.9%;
-    --card: 0 0% 100%;
-    --card-foreground: 0 0% 3.9%;
-    --popover: 0 0% 100%;
-    --popover-foreground: 0 0% 3.9%;
-    --primary: 0 0% 9%;
-    --primary-foreground: 0 0% 98%;
-    --secondary: 0 0% 96.1%;
-    --secondary-foreground: 0 0% 9%;
-    --muted: 0 0% 96.1%;
-    --muted-foreground: 0 0% 45.1%;
-    --accent: 0 0% 96.1%;
-    --accent-foreground: 0 0% 9%;
-    --destructive: 0 84.2% 60.2%;
-    --destructive-foreground: 0 0% 98%;
-    --border: 0 0% 89.8%;
-    --input: 0 0% 89.8%;
-    --ring: 0 0% 3.9%;
-    --chart-1: 12 76% 61%;
-    --chart-2: 173 58% 39%;
-    --chart-3: 197 37% 24%;
-    --chart-4: 43 74% 66%;
-    --chart-5: 27 87% 67%;
-    --radius: 0.5rem;
-    --sidebar-background: 0 0% 98%;
-    --sidebar-foreground: 240 5.3% 26.1%;
-    --sidebar-primary: 240 5.9% 10%;
-    --sidebar-primary-foreground: 0 0% 98%;
-    --sidebar-accent: 240 4.8% 95.9%;
-    --sidebar-accent-foreground: 240 5.9% 10%;
-    --sidebar-border: 220 13% 91%;
-    --sidebar-ring: 217.2 91.2% 59.8%;
-  }
-  .dark {
-    --background: 0 0% 3.9%;
-    --foreground: 0 0% 98%;
-    --card: 0 0% 3.9%;
-    --card-foreground: 0 0% 98%;
-    --popover: 0 0% 3.9%;
-    --popover-foreground: 0 0% 98%;
-    --primary: 0 0% 98%;
-    --primary-foreground: 0 0% 9%;
-    --secondary: 0 0% 14.9%;
-    --secondary-foreground: 0 0% 98%;
-    --muted: 0 0% 14.9%;
-    --muted-foreground: 0 0% 63.9%;
-    --accent: 0 0% 14.9%;
-    --accent-foreground: 0 0% 98%;
-    --destructive: 0 62.8% 30.6%;
-    --destructive-foreground: 0 0% 98%;
-    --border: 0 0% 14.9%;
-    --input: 0 0% 14.9%;
-    --ring: 0 0% 83.1%;
-    --chart-1: 220 70% 50%;
-    --chart-2: 160 60% 45%;
-    --chart-3: 30 80% 55%;
-    --chart-4: 280 65% 60%;
-    --chart-5: 340 75% 55%;
-    --sidebar-background: 240 5.9% 10%;
-    --sidebar-foreground: 240 4.8% 95.9%;
-    --sidebar-primary: 224.3 76.3% 48%;
-    --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 240 3.7% 15.9%;
-    --sidebar-accent-foreground: 240 4.8% 95.9%;
-    --sidebar-border: 240 3.7% 15.9%;
-    --sidebar-ring: 217.2 91.2% 59.8%;
+    --bg: hsl(var(--hue) 15% 8%);
+    --bg-elev: hsl(var(--hue) 18% 12%);
+    --text: hsl(0 0% 98%);
+    --muted: hsl(var(--hue) 8% 65%);
+    --primary: hsl(255 90% 70%);
+    --border: hsl(var(--hue) 14% 28%);
   }
 }
 
-@layer base {
-  * {
-    @apply border-border;
-  }
-  body {
-    @apply bg-background text-foreground;
-  }
+/* Box sizing and base */
+*, *::before, *::after { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body {
+  margin: 0;
+  font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Inter, "Helvetica Neue", Arial, "Noto Sans", "Apple Color Emoji", "Segoe UI Emoji";
+  color: var(--text);
+  background: var(--bg);
+  line-height: 1.55;
+}
+
+/* Utilities */
+.u-flow > * + * { margin-top: var(--space-3); }
+.u-skip-link {
+  position: absolute; left: -999rem; top: 0;
+}
+.u-skip-link:focus {
+  left: 0; background: var(--focus); color: white; padding: var(--space-1);
+}
+.u-inview {
+  /* Default state for entry animations (simulated in CSS only) */
+  opacity: 0; transform: translateY(0.5rem);
+  animation: fade-up var(--dur-2) var(--ease-std) both;
+}
+@keyframes fade-up {
+  to { opacity: 1; transform: translateY(0); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .u-inview { animation: none; opacity: 1; transform: none; }
+  html { scroll-behavior: auto; }
+}
+
+/* Buttons */
+.btn {
+  display: inline-flex; align-items: center; justify-content: center;
+  padding: clamp(0.6rem, 0.5rem + 0.8vw, 0.9rem) clamp(1rem, 0.8rem + 1.5vw, 1.5rem);
+  border-radius: var(--radius-1);
+  text-decoration: none; font-weight: 600; font-size: var(--fs-2);
+  border: 1px solid transparent;
+}
+.btn--primary {
+  color: var(--primary-contrast);
+  background: linear-gradient(135deg, color-mix(in oklab, var(--primary) 85%, white 15%), var(--primary));
+}
+.btn--primary:focus-visible,
+.btn--primary:hover { filter: brightness(1.05); }
+.btn--secondary {
+  background: var(--bg-elev); border-color: var(--border); color: var(--text);
+}
+.btn--ghost {
+  background: transparent; border-color: var(--border); color: var(--text);
+}
+
+/* Site chrome */
+.site-header {
+  position: sticky; top: 0; z-index: 10;
+  background: color-mix(in oklab, var(--bg) 92%, transparent);
+  backdrop-filter: saturate(1.1) blur(8px);
+  border-bottom: 1px solid var(--border);
+}
+.site-header__inner {
+  display: flex; align-items: center; gap: var(--space-2);
+  padding: var(--space-2) var(--space-3);
+  max-width: 110rem; margin-inline: auto;
+}
+.site-header__brand {
+  font-weight: 800; font-size: var(--fs-3); text-decoration: none; color: var(--text);
+}
+.site-header__nav { margin-left: auto; }
+.site-header__nav-list {
+  display: none; /* mobile-first: hidden, becomes flex at >= md */
+  gap: var(--space-2); list-style: none; padding: 0; margin: 0;
+}
+.site-header__nav-link { text-decoration: none; color: var(--text); padding: var(--space-1); border-radius: var(--radius-1); }
+.site-header__nav-link:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
+.site-header__cta { display: none; }
+
+/* Footer */
+.site-footer {
+  border-top: 1px solid var(--border);
+  padding: var(--space-3);
+}
+.site-footer__inner {
+  max-width: 110rem; margin-inline: auto;
+  display: grid; gap: var(--space-2);
+}
+.site-footer__nav-list {
+  display: flex; flex-wrap: wrap; gap: var(--space-1);
+  list-style: none; margin: 0; padding: 0;
+}
+.site-footer__nav-link { text-decoration: none; color: var(--text); }
+
+/* Breakpoints */
+@media (min-width: 48rem) {
+  .site-header__nav-list { display: flex; }
+  .site-header__cta { display: inline-flex; }
+  .site-footer__inner { grid-template-columns: 1fr auto; align-items: center; }
+}
+@media (min-width: 72rem) {
+  .site-header__inner { padding-inline: var(--space-4); }
 }
