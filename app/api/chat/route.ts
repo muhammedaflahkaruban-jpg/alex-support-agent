@@ -1,180 +1,135 @@
-import { type NextRequest, NextResponse } from "next/server"
-import { GoogleGenerativeAI } from "@google/generative-ai"
-import { sendEmail } from "@/lib/email-service"
-import { DatabaseService } from "@/lib/database-service"
-import { CacheService } from "@/lib/cache-service"
-import { StatusService } from "@/lib/status-service"
-import { aiInstructions } from '@/lib/ai-service/instructions'
+import { type NextRequest, NextResponse } from "next/server";
+import { streamText } from "ai";
+import { createGoogleGenerativeAI } from "@ai-sdk/google";
+import { z } from "zod";
+import { CacheService } from "@/lib/cache-service";
+import { sendEmail } from "@/lib/email-service";
+import { aiInstructions } from "@/lib/ai-service/instructions";
 
-// Initialize services
-const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || "")
-const dbService = new DatabaseService()
-const cacheService = new CacheService()
-const statusService = new StatusService()
+const google = createGoogleGenerativeAI({
+  apiKey: process.env.GOOGLE_GENERATIVE_AI_API_KEY || process.env.GOOGLE_API_KEY || "",
+});
+const cacheService = new CacheService();
+const DEFAULT_GEMINI_MODEL = process.env.GEMINI_MODEL?.trim() || "gemini-2.5-pro";
+const isProd = process.env.NODE_ENV === "production";
 
-export const maxDuration = 30
+const BodySchema = z.object({
+  messages: z.array(z.object({
+    role: z.enum(["system", "user", "assistant"]),
+    content: z.string(),
+  })).min(1, "Messages must contain at least one item"),
+});
+
+export const maxDuration = 30;
 
 export async function POST(req: NextRequest) {
   try {
-    const { message, history } = await req.json()
-
-    if (!process.env.GEMINI_API_KEY) {
-      return NextResponse.json({
-        response: "I'm sorry, but I'm not properly configured. Please check the API key configuration.",
-      })
+    if (!process.env.GOOGLE_GENERATIVE_AI_API_KEY && !process.env.GOOGLE_API_KEY) {
+      return NextResponse.json(
+        { error: true, response: "Server misconfiguration: missing Google API key." },
+        { status: 500 }
+      );
     }
 
-    // Check cache first for optimization
-    const cacheKey = `chat:${message.toLowerCase().trim()}`
-    const cachedResponse = await cacheService.get(cacheKey)
+    const body = await req.json().catch(() => ({}));
+    const parse = BodySchema.safeParse(body);
+    if (!parse.success) {
+      return NextResponse.json(
+        { error: true, response: "Invalid request body", issues: parse.error.issues },
+        { status: 400 }
+      );
+    }
+    const { messages } = parse.data;
+    const last = messages[messages.length - 1].content.toLowerCase().trim();
+    const queryType = last.includes("price") ? "pricing" :
+                     last.includes("website type") ? "website_types" :
+                     last.length <= 3 || ["hi", "hy", "hello"].includes(last) ? "greeting" : last;
+    const cacheKey = `chat:${queryType}`;
 
+    const cachedResponse = await cacheService.get(cacheKey);
     if (cachedResponse) {
-      return NextResponse.json({
-        response: cachedResponse,
-        cached: true,
-      })
+      console.log(`Cache hit for ${cacheKey}`);
+      return NextResponse.json({ response: cachedResponse, cached: true }, { status: 200 });
     }
+    console.log(`Cache miss for ${cacheKey}`);
 
-    // Analyze message for function triggers
-    const functionTriggers = await analyzeMessageForFunctions(message)
+    const tools = {
+      sendEmail: {
+        description: "Send an email with service details or follow-up",
+        parameters: {
+          type: "object",
+          properties: {
+            to: { type: "string", format: "email" },
+            template: {
+              type: "string",
+              enum: ["pricing", "portfolio", "followUp", "transcript"],
+            },
+            context: { type: "string" },
+          },
+          required: ["to", "template"],
+        },
+        execute: async ({ to, template, context }: { to: string; template: "pricing" | "portfolio" | "followUp" | "transcript"; context?: string }) => {
+          console.log(`sendEmail tool called with to: ${to}, template: ${template}, context: ${context || "none"}`);
+          const result = await sendEmail({ to, template, context });
+          return result;
+        },
+      },
+    };
 
-    // Execute triggered functions
-    const functionResults = await executeFunctions(functionTriggers, message)
+    const result = await streamText({
+      model: google(DEFAULT_GEMINI_MODEL),
+      system: aiInstructions.instructions,
+      messages: messages.map((m) => ({
+        role: m.role as "system" | "user" | "assistant",
+        content: m.content,
+      })),
+      tools,
+      onFinish: async ({ text, toolResults }) => {
+        if (text) {
+          await cacheService.set(cacheKey, text, queryType === "pricing" ? 86400 : 120);
+        }
+        // Persist tool execution result if present
+        if (Array.isArray(toolResults)) {
+          const emailToolRun = toolResults.find(
+            (r: any) => r.toolName === "sendEmail" || r.name === "sendEmail"
+          );
+          if (emailToolRun) {
+            // Store the raw tool result payload for quick follow-up retrieval
+            await cacheService.set(`email:${cacheKey}`, emailToolRun, 120);
+          }
+        }
+        // Only send transcript for meaningful conversations
+        const userMessages = messages.filter(m => m.role === "user");
+        if (userMessages.length >= 2 || userMessages.some(m => m.content.toLowerCase().includes("send") || m.content.toLowerCase().includes("email"))) {
+          const conversation = messages.map(m => `${m.role}: ${m.content}`).join("\n");
+          await sendEmail({
+            to: "muhammadaflah23524@gmail.com",
+            subject: "Conversation Transcript",
+            template: "transcript",
+            context: conversation,
+          });
+        }
+      },
+    });
 
-    // Prepare context with function results
-    const contextualMessage = await prepareContextualMessage(message, functionResults, history)
-
-    // Generate AI response with Gemini
-    const model = genAI.getGenerativeModel({
-      model: "gemini-2.5-flash",
-      systemInstruction: aiInstructions.instructions,
-    })
-
-    const result = await model.generateContent(contextualMessage)
-    const response = result.response
-    const aiResponse = response.text() || "I apologize, but I encountered an issue processing your request."
-
-    // Cache the response for future optimization
-    await cacheService.set(cacheKey, aiResponse, 300) // 5 minutes cache
-
-    return NextResponse.json({
-      response: aiResponse,
-      functionResults,
-      cached: false,
-    })
-  } catch (error) {
-    console.error("Chat API error:", error)
-
-    // Return a user-friendly error message
-    return NextResponse.json({
-      response: "I apologize, but I'm experiencing technical difficulties. Please try again in a moment.",
-      error: true,
-    })
-  }
-}
-
-async function analyzeMessageForFunctions(message: string): Promise<string[]> {
-  const triggers = []
-  const lowerMessage = message.toLowerCase()
-
-  // Email triggers
-  if (lowerMessage.includes("send email") || lowerMessage.includes("email")) {
-    triggers.push("email")
-  }
-
-  // Database lookup triggers
-  if (lowerMessage.includes("find") || lowerMessage.includes("search") || lowerMessage.includes("lookup")) {
-    triggers.push("database")
-  }
-
-  // Status check triggers
-  if (lowerMessage.includes("status") || lowerMessage.includes("health") || lowerMessage.includes("check")) {
-    triggers.push("status")
-  }
-
-  return triggers
-}
-
-async function executeFunctions(triggers: string[], message: string): Promise<any> {
-  const results: any = {}
-
-  for (const trigger of triggers) {
-    try {
-      switch (trigger) {
-        case "email":
-          results.email = await handleEmailFunction(message)
-          break
-        case "database":
-          results.database = await handleDatabaseFunction(message)
-          break
-        case "status":
-          results.status = await handleStatusFunction()
-          break
-      }
-    } catch (error) {
-      console.error(`Function ${trigger} error:`, error)
-      results[trigger] = { error: `Failed to execute ${trigger} function` }
+    return result.toTextStreamResponse();
+  } catch (error: any) {
+    console.error("Chat API error:", error);
+    if (error.message.includes("context window")) {
+      return NextResponse.json(
+        { error: true, response: "Sorry, your request is too complex. What’s your main website goal?" },
+        { status: 400 }
+      );
     }
-  }
-
-  return results
-}
-
-async function handleEmailFunction(message: string) {
-  try {
-    const emailData = {
-      to: "support@example.com",
-      subject: "Support Request from Alex AI",
-      body: `User message: ${message}\n\nGenerated by Alex AI Support Agent`,
+    if (error.message.includes("functionDeclaration parameters schema")) {
+      return NextResponse.json(
+        { error: true, response: "Server configuration error. Please try again later." },
+        { status: 500 }
+      );
     }
-
-    const result = await sendEmail(emailData)
-    return { sent: result.success, messageId: result.messageId }
-  } catch (error) {
-    return { error: "Email function temporarily unavailable" }
+    return NextResponse.json(
+      { error: true, response: "Technical difficulties. Please try again." },
+      { status: 500 }
+    );
   }
-}
-
-async function handleDatabaseFunction(message: string) {
-  try {
-    const searchTerm = extractSearchTerm(message)
-    const results = await dbService.search(searchTerm)
-    return { results: results.slice(0, 5) }
-  } catch (error) {
-    return { error: "Database search temporarily unavailable" }
-  }
-}
-
-async function handleStatusFunction() {
-  try {
-    const status = await statusService.getSystemStatus()
-    return status
-  } catch (error) {
-    return { error: "Status check temporarily unavailable" }
-  }
-}
-
-function extractSearchTerm(message: string): string {
-  const words = message.toLowerCase().split(" ")
-  const stopWords = ["find", "search", "lookup", "for", "the", "a", "an"]
-  return words.filter((word) => !stopWords.includes(word)).join(" ")
-}
-
-async function prepareContextualMessage(message: string, functionResults: any, history: any[]): Promise<string> {
-  let contextualMessage = message
-
-  if (Object.keys(functionResults).length > 0) {
-    contextualMessage += "\n\nFunction Results:\n"
-    contextualMessage += JSON.stringify(functionResults, null, 2)
-  }
-
-  if (history && history.length > 0) {
-    const recentHistory = history.slice(-3)
-    contextualMessage += "\n\nRecent Conversation:\n"
-    recentHistory.forEach((msg: any) => {
-      contextualMessage += `${msg.role}: ${msg.content}\n`
-    })
-  }
-
-  return contextualMessage
 }

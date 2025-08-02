@@ -1,12 +1,15 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import { HelpCircle, Send, Sparkles } from 'lucide-react';
 
 export default function Hero() {
+  const router = useRouter();
   const [isTyping, setIsTyping] = useState(false);
   const [currentText, setCurrentText] = useState('');
   const [textIndex, setTextIndex] = useState(0);
+  const [inputValue, setInputValue] = useState('');
   
   const typewriterTexts = [
     'Ask Alex about our web services...',
@@ -27,6 +30,19 @@ export default function Hero() {
 
     return () => clearInterval(interval);
   }, [textIndex]);
+
+  const goToChatWithMessage = (message: string) => {
+    const msg = message.trim();
+    if (!msg) return;
+    try {
+      // backup in sessionStorage in case query parsing fails
+      if (typeof window !== 'undefined') {
+        sessionStorage.setItem('initialChatMessage', msg);
+      }
+    } catch {}
+    const query = new URLSearchParams({ message: msg }).toString();
+    router.push(`/chat?${query}`);
+  };
 
   return (
     <section
@@ -107,10 +123,17 @@ export default function Hero() {
               <div className="relative flex-1">
                 <input
                   type="text"
+                  value={inputValue}
+                  onChange={(e) => setInputValue(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') {
+                      e.preventDefault();
+                      goToChatWithMessage(inputValue);
+                    }
+                  }}
                   placeholder={currentText || typewriterTexts[0]}
                   className={`w-full px-4 py-3 lg:px-6 lg:py-4 text-sm lg:text-base bg-transparent border-none outline-none placeholder-opacity-50 transition-all duration-300 ${isTyping ? 'animate-pulse' : ''}`}
                   style={{ color: 'var(--theme-text)' }}
-                  
                 />
                 {/* Typing indicator */}
                 {isTyping && (
@@ -123,9 +146,11 @@ export default function Hero() {
                   </div>
                 )}
               </div>
-              <button 
+              <button
+                onClick={() => goToChatWithMessage(inputValue)}
                 className="w-12 h-12 lg:w-14 lg:h-14 btn-primary rounded-xl lg:rounded-2xl shadow-xl flex items-center justify-center hover:scale-105 transition-all duration-300"
                 style={{ backgroundColor: 'var(--theme-accent)' }}
+                aria-label="Send message"
               >
                 <Send className="w-4 h-4 lg:w-5 lg:h-5 text-white" />
               </button>

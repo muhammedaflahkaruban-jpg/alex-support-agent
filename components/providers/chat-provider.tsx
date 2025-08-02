@@ -101,35 +101,49 @@ interface ChatContextType {
 
 const ChatContext = createContext<ChatContextType | undefined>(undefined)
 
+// Helper: format time without seconds
+function formatTimeNoSeconds(date: Date) {
+  try {
+    return date.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })
+  } catch {
+    // Fallback if date is not a Date instance after hydration
+    const d = new Date(date as any)
+    return d.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })
+  }
+}
+
 // Provider
 export function ChatProvider({ children }: { children: React.ReactNode }) {
   const [state, dispatch] = useReducer(chatReducer, initialState)
+  // Simple dedupe guard to avoid double-send within a short window
+  const lastSentRef = (globalThis as any).__alex_last_sent_ref || { text: "", at: 0 }
+  ;(globalThis as any).__alex_last_sent_ref = lastSentRef
 
+  // Disable slow typing animation; keep simple instant reply
   const typeMessage = useCallback((text: string, callback: () => void) => {
-    let index = 0
     dispatch({ type: "SET_TYPING_MESSAGE", payload: "" })
-
-    const typeInterval = setInterval(() => {
-      if (index < text.length) {
-        dispatch({ type: "SET_TYPING_MESSAGE", payload: text.slice(0, index + 1) })
-        index++
-      } else {
-        clearInterval(typeInterval)
-        dispatch({ type: "SET_TYPING_MESSAGE", payload: "" })
-        callback()
-      }
-    }, 20) // Optimized for performance
-
-    return () => clearInterval(typeInterval)
+    callback()
+    return () => {}
   }, [])
 
   const sendMessage = useCallback(
     async (content: string) => {
+      const now = Date.now()
+      const trimmed = (content || "").trim()
+      if (!trimmed) return
+
+      // If the same text was triggered very recently, ignore to prevent duplicate replies
+      if (lastSentRef.text === trimmed && now - lastSentRef.at < 1500) {
+        return
+      }
+      lastSentRef.text = trimmed
+      lastSentRef.at = now
+
       // Add user message
       const userMessage: Message = {
-        id: `user-${Date.now()}`,
+        id: `user-${now}`,
         role: "user",
-        content,
+        content: trimmed,
         timestamp: new Date(),
       }
 
@@ -144,32 +158,63 @@ export function ChatProvider({ children }: { children: React.ReactNode }) {
             "Content-Type": "application/json",
           },
           body: JSON.stringify({
-            message: content,
-            history: state.messages,
+            messages: [
+              ...state.messages.map((m) => ({ role: m.role, content: m.content })),
+              { role: "user", content },
+            ],
           }),
         })
 
-        const data = await response.json()
-
+        // Handle non-2xx early with optional JSON error parsing
         if (!response.ok) {
-          throw new Error(data.error || `HTTP error! status: ${response.status}`)
+          let serverErr = ""
+          try {
+            const maybeJson = await response.json()
+            serverErr = maybeJson?.response || maybeJson?.error || JSON.stringify(maybeJson)
+          } catch {
+            serverErr = await response.text()
+          }
+          throw new Error(serverErr || `HTTP error! status: ${response.status}`)
         }
 
-        const responseText = data.response || "I apologize, but I didn't receive a proper response."
-
-        // Type the response with animation
-        typeMessage(responseText, () => {
-          const assistantMessage: Message = {
-            id: `assistant-${Date.now()}`,
-            role: "assistant",
-            content: responseText,
-            timestamp: new Date(),
-            functionResults: data.functionResults,
+        // Be robust to either JSON or plain text
+        let assistantText = ""
+        const ct = response.headers.get("content-type") || ""
+        try {
+          if (ct.includes("application/json")) {
+            const data = await response.json()
+            assistantText = (data?.response ?? data?.text ?? "").toString()
+          } else {
+            assistantText = (await response.text()) || ""
+            // If text looks like JSON, try parse to extract response
+            if (assistantText.trim().startsWith("{")) {
+              try {
+                const maybe = JSON.parse(assistantText)
+                assistantText = (maybe?.response ?? assistantText).toString()
+              } catch {
+                // ignore parse error and keep raw text
+              }
+            }
           }
+        } catch {
+          // Final fallback
+          assistantText = (await response.text()).toString()
+        }
 
-          dispatch({ type: "ADD_MESSAGE", payload: assistantMessage })
-          dispatch({ type: "SET_LOADING", payload: false })
-        })
+        const finalText =
+          (assistantText && assistantText.trim()) ||
+          "I apologize, but I didn't receive a proper response."
+
+        // Append assistant message instantly
+        const assistantMessage: Message = {
+          id: `assistant-${Date.now()}`,
+          role: "assistant",
+          content: finalText,
+          timestamp: new Date(),
+        }
+        dispatch({ type: "ADD_MESSAGE", payload: assistantMessage })
+        dispatch({ type: "SET_LOADING", payload: false })
+        dispatch({ type: "SET_TYPING_MESSAGE", payload: "" })
       } catch (error) {
         console.error("Chat error:", error)
         const errorText = "I apologize, but I encountered an error. Please try again in a moment."

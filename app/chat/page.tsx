@@ -6,6 +6,7 @@ export const metadata: Metadata = {
   description: "Chat with Alex, your intelligent AI support agent",
 }
 
-export default function ChatPage() {
-  return <ChatPageClient />
+export default function ChatPage({ searchParams }: { searchParams?: { [key: string]: string | string[] | undefined } }) {
+  const message = typeof searchParams?.message === "string" ? searchParams?.message : undefined
+  return <ChatPageClient initialMessage={message} />
 }
