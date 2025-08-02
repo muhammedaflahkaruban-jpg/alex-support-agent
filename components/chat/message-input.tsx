@@ -51,6 +51,28 @@ export function MessageInput() {
       transition={{ duration: 0.3 }}
     >
       <form onSubmit={handleSubmit} className="space-y-4">
+        {/* Quick Actions: show only before the first user message */}
+        {state.messages.filter((m) => m.role === "user").length === 0 && (
+          <div className="flex flex-wrap gap-2">
+            {quickSuggestions.map((suggestion, index) => (
+              <motion.button
+                key={suggestion}
+                type="button"
+                onClick={() => handleSuggestionClick(suggestion)}
+                className="px-3 py-1 text-xs bg-muted/50 hover:bg-muted border border-border/50 rounded-full transition-colors backdrop-blur-sm"
+                disabled={state.isLoading}
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: index * 0.1 }}
+              >
+                {suggestion}
+              </motion.button>
+            ))}
+          </div>
+        )}
+
         <div className="flex space-x-4">
           <div className="flex-1 relative">
             <Input
@@ -88,26 +110,6 @@ export function MessageInput() {
               {state.isLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
             </Button>
           )}
-        </div>
-
-        {/* Quick Actions */}
-        <div className="flex flex-wrap gap-2">
-          {quickSuggestions.map((suggestion, index) => (
-            <motion.button
-              key={suggestion}
-              type="button"
-              onClick={() => handleSuggestionClick(suggestion)}
-              className="px-3 py-1 text-xs bg-muted/50 hover:bg-muted border border-border/50 rounded-full transition-colors backdrop-blur-sm"
-              disabled={state.isLoading}
-              whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.95 }}
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: index * 0.1 }}
-            >
-              {suggestion}
-            </motion.button>
-          ))}
         </div>
       </form>
     </motion.div>

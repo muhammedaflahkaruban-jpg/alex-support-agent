@@ -51,9 +51,11 @@ export default function ChatPageClient({ initialMessage }: ChatPageClientProps) 
   }, [initialMessage, sendMessage, router, searchParams])
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-background via-background/95 to-background/90 dark:from-background dark:via-background/90 dark:to-background/80 flex flex-col">
+    <div className="chat-shell">
+      {/* Fixed, non-scrolling chat background for chat route only */}
+      <div className="chat-bg-fixed" />
       <ChatHeader />
-      <main className="flex-1">
+      <main className="chat-scroll">
         <ChatInterface />
       </main>
     </div>

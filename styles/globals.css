@@ -59,6 +59,142 @@ body {
   line-height: 1.55;
 }
 
+/* Blend surface token for chat card to avoid pure black look over wallpaper */
+:root {
+  /* Semi-translucent surface that tints toward page bg in light mode */
+  --chat-surface: color-mix(in oklab, var(--bg) 85%, transparent);
+  /* Dark mode surface: translucent charcoal with slight tint */
+  --chat-surface-dark: color-mix(in oklab, black 35%, transparent);
+  --chat-surface-border: color-mix(in oklab, var(--text) 10%, transparent);
+  --chat-surface-blur: 12px;
+}
+
+/* Map to active theme */
+:root,
+:root[data-theme="light"] {
+  --chat-surface-effective: var(--chat-surface);
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --chat-surface-effective: var(--chat-surface-dark);
+  }
+}
+:root[data-theme="dark"] {
+  --chat-surface-effective: var(--chat-surface-dark);
+}
+
+/* ===== Chat fixed background tokens and layer ===== */
+
+/* Tokens */
+:root {
+  /* Prefer modern color spaces to reduce banding where supported via color-mix in oklab already used above */
+  --chat-bg-base: var(--bg);
+  --chat-bg-accent: color-mix(in oklab, var(--bg) 92%, black 8%);
+  --chat-bg-dot: color-mix(in oklab, var(--text) 8%, transparent);
+  --chat-bg-vignette: color-mix(in oklab, black 6%, transparent);
+
+  --chat-bg-base-dark: hsl(var(--hue) 15% 8%);
+  --chat-bg-accent-dark: hsl(var(--hue) 14% 10%);
+  --chat-bg-dot-dark: color-mix(in oklab, white 8%, transparent);
+  --chat-bg-vignette-dark: color-mix(in oklab, black 35%, transparent);
+
+  /* Texture hook (optional). Provide these assets under /public/images if desired */
+  --chat-bg-image: url("/images/chat-paper.avif");
+  --chat-bg-image-2x: image-set(
+    url("/images/chat-paper.avif") type("image/avif") 1x,
+    url("/images/chat-paper@2x.avif") type("image/avif") 2x
+  );
+
+  /* Controls */
+  --chat-bg-size: 1200px;
+  --chat-bg-opacity: 0.35;
+  --chat-bg-dot-spacing: 28px 28px;
+  --chat-bg-enable-texture: 1;
+}
+
+/* Light/dark effective mapping.
+   If your theme provider sets [data-theme="dark"] on html/body, these will respond. */
+:root,
+:root[data-theme="light"] {
+  --chat-bg-base-effective: var(--chat-bg-base);
+  --chat-bg-accent-effective: var(--chat-bg-accent);
+  --chat-bg-dot-effective: var(--chat-bg-dot);
+  --chat-bg-vignette-effective: var(--chat-bg-vignette);
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --chat-bg-base-effective: var(--chat-bg-base-dark);
+    --chat-bg-accent-effective: var(--chat-bg-accent-dark);
+    --chat-bg-dot-effective: var(--chat-bg-dot-dark);
+    --chat-bg-vignette-effective: var(--chat-bg-vignette-dark);
+  }
+}
+:root[data-theme="dark"] {
+  --chat-bg-base-effective: var(--chat-bg-base-dark);
+  --chat-bg-accent-effective: var(--chat-bg-accent-dark);
+  --chat-bg-dot-effective: var(--chat-bg-dot-dark);
+  --chat-bg-vignette-effective: var(--chat-bg-vignette-dark);
+}
+
+/* Fixed, non-scrolling background layer for chat routes only.
+   Mount a div.chat-bg-fixed in the chat page to activate. */
+.chat-bg-fixed {
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  background-color: var(--chat-bg-base-effective);
+  /* Layer stack: vignette + soft accent radius + subtle dot grid */
+  background-image:
+    radial-gradient(120% 80% at 50% 10%, transparent 20%, var(--chat-bg-vignette-effective) 100%),
+    radial-gradient(100% 100% at 50% 50%, var(--chat-bg-accent-effective) 0%, transparent 70%),
+    radial-gradient(2px 2px at 1px 1px, var(--chat-bg-dot-effective) 1px, transparent 1px);
+  background-repeat: no-repeat, no-repeat, repeat;
+  background-position: center top, center center, 0 0;
+  background-size: 140% 120%, 120% 120%, var(--chat-bg-dot-spacing);
+}
+.chat-bg-fixed::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background-image: var(--chat-bg-image-2x);
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+  opacity: calc(var(--chat-bg-opacity) * var(--chat-bg-enable-texture));
+  image-rendering: auto;
+  will-change: transform;
+}
+
+/* Hi-DPI tuning */
+@media (min-resolution: 2dppx) {
+  .chat-bg-fixed::before { background-image: var(--chat-bg-image-2x); }
+}
+
+/* Chat shell: isolate scroll to content */
+.chat-shell {
+  position: relative;
+  display: grid;
+  grid-template-rows: auto 1fr auto; /* header, content, input */
+  height: 100dvh;
+  max-height: 100dvh;
+  overflow: hidden; /* isolate */
+}
+.chat-scroll {
+  min-height: 0;
+  overflow: auto; /* the only scroller */
+  -webkit-overflow-scrolling: touch;
+  scroll-behavior: smooth;
+  overscroll-behavior: contain; /* avoid rubber-band exposing body */
+  will-change: scroll-position;
+}
+
+/* Message list container stays transparent and efficient */
+.message-list {
+  background: transparent;
+  contain: layout paint;
+}
+
 /* Utilities */
 .u-flow > * + * { margin-top: var(--space-3); }
 .u-skip-link {
