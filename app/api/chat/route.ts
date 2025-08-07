@@ -1,3 +1,4 @@
+//app/api/chat/route.ts
 import { type NextRequest, NextResponse } from "next/server";
 import { streamText } from "ai";
 import { createGoogleGenerativeAI } from "@ai-sdk/google";
