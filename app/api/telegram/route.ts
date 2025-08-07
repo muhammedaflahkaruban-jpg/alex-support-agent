@@ -28,90 +28,135 @@ type TelegramUpdate = {
   message?: TelegramMessage;
 };
 
-async function sendTelegramMessage(chatId: number, text: string) {
-  const token = process.env.TELEGRAM_BOT_TOKEN;
-  if (!token) throw new Error('TELEGRAM_BOT_TOKEN not set');
+async function sendTelegramChatAction(chatId: number, action: 'typing' = 'typing'): Promise<void> {
+  try {
+    const token = process.env.TELEGRAM_BOT_TOKEN;
+    if (!token) throw new Error('TELEGRAM_BOT_TOKEN not configured');
+    const url = `https://api.telegram.org/bot${token}/sendChatAction`;
+    const res = await fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ chat_id: chatId, action }),
+      cache: 'no-store',
+    });
+    if (!res.ok) {
+      const body = await res.text();
+      throw new Error(`Telegram sendChatAction error: ${res.status} ${body}`);
+    }
+  } catch (error) {
+    console.error('Failed to send Telegram chat action:', error);
+  }
+}
 
-  const url = `https://api.telegram.org/bot${token}/sendMessage`;
-  const res = await fetch(url, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ chat_id: chatId, text }),
-    cache: 'no-store',
-  });
-
-  if (!res.ok) {
-    const body = await res.text();
-    throw new Error(`sendMessage failed: ${res.status} ${body}`);
+async function sendTelegramMessage(chatId: number, text: string): Promise<void> {
+  try {
+    const token = process.env.TELEGRAM_BOT_TOKEN;
+    if (!token) throw new Error('TELEGRAM_BOT_TOKEN not configured');
+    const url = `https://api.telegram.org/bot${token}/sendMessage`;
+    const res = await fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ chat_id: chatId, text, parse_mode: 'Markdown' }),
+      cache: 'no-store',
+    });
+    if (!res.ok) {
+      const body = await res.text();
+      throw new Error(`Telegram API error: ${res.status} ${body}`);
+    }
+  } catch (error) {
+    console.error('Failed to send Telegram message:', error);
+    throw error;
   }
 }
 
 export async function POST(req: Request) {
-  // Validate secret token from Telegram (configured when setting the webhook)
-  const secret = process.env.TELEGRAM_WEBHOOK_SECRET;
-  const got = req.headers.get('x-telegram-bot-api-secret-token');
-  if (!secret || got !== secret) {
-    return NextResponse.json({ ok: false, error: 'unauthorized' }, { status: 401 });
-  }
-
-  let update: TelegramUpdate | undefined;
   try {
-    update = await req.json();
-  } catch {
-    return NextResponse.json({ ok: true }); // acknowledge anyway
-  }
+    const secret = process.env.TELEGRAM_WEBHOOK_SECRET;
+    const receivedSecret = req.headers.get('x-telegram-bot-api-secret-token');
+    if (!secret || receivedSecret !== secret) {
+      console.warn('Unauthorized Telegram webhook access attempt');
+      return NextResponse.json({ ok: false, error: 'Unauthorized access' }, { status: 401 });
+    }
 
-  const msg = update?.message;
-  const chatId = msg?.chat.id;
-  const text = msg?.text?.trim();
-
-  if (!chatId || !text) {
-    return NextResponse.json({ ok: true });
-  }
-
-  const prefix = '/alex';
-  if (text.startsWith(prefix)) {
-    const prompt = text.slice(prefix.length).trim();
-    if (!prompt) {
-      await sendTelegramMessage(chatId, 'Please provide a message after /alex.');
+    let update: TelegramUpdate;
+    try {
+      update = await req.json();
+      console.log('Received Telegram update:', JSON.stringify(update, null, 2));
+    } catch (error) {
+      console.error('Failed to parse Telegram update:', error);
       return NextResponse.json({ ok: true });
     }
 
+    const msg = update.message;
+    const chatId = msg?.chat.id;
+    const text = msg?.text?.trim();
+
+    if (!chatId || !text) {
+      console.log('Received empty or invalid Telegram message');
+      return NextResponse.json({ ok: true });
+    }
+
+    if (msg.chat.type !== 'private') {
+      console.log('Ignoring non-private chat message');
+      return NextResponse.json({ ok: true });
+    }
+
+    // Skip very short or meaningless inputs
+    if (text.length <= 2 || ["hi", "hello", "hey"].includes(text.toLowerCase())) {
+      await sendTelegramMessage(chatId, "Hey there! I'm Alex from Aflah's team. How can I assist you today?");
+      return NextResponse.json({ ok: true });
+    }
+
+    await sendTelegramChatAction(chatId);
+
     try {
       const base = process.env.PUBLIC_BASE_URL;
-      if (!base) throw new Error('PUBLIC_BASE_URL not set');
+      if (!base) throw new Error('PUBLIC_BASE_URL not configured');
 
       const res = await fetch(`${base}/api/chat`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          messages: [{ role: 'user', content: prompt }],
-          source: 'telegram'
+          messages: [{ role: 'user', content: text }],
+          source: 'telegram',
+          chatId,
         }),
         cache: 'no-store',
       });
 
       if (!res.ok) {
         const body = await res.text();
-        throw new Error(`Chat API failed: ${res.status} ${body}`);
+        throw new Error(`Chat API error: ${res.status} ${body}`);
       }
 
-      const data = await res.json();
-      const responseText: string | undefined = data?.response;
+      const contentType = res.headers.get('content-type');
+      let responseText: string | undefined;
+
+      if (contentType?.includes('application/json')) {
+        const data = await res.json();
+        responseText = data?.response;
+      } else {
+        responseText = await res.text();
+        console.warn('Received non-JSON response from Chat API:', responseText);
+      }
 
       if (responseText) {
-        await sendTelegramMessage(chatId, `🤖 Alex says:\n${responseText}`);
+        await sendTelegramMessage(chatId, responseText);
       } else {
-        await sendTelegramMessage(chatId, "Alex couldn't understand that.");
+        await sendTelegramMessage(chatId, "Apologies, I couldn't process that. Could you please rephrase?");
       }
-    } catch (err) {
-      console.error('Telegram handler error:', err);
-      await sendTelegramMessage(chatId, 'Sorry, something went wrong.');
+    } catch (error: any) {
+      console.error('Chat API processing error:', error);
+      if (error.message.includes('Unexpected token')) {
+        await sendTelegramMessage(chatId, 'Sorry, there was an issue with the response format. Please try again.');
+      } else {
+        await sendTelegramMessage(chatId, 'Oops, something went wrong on my end. Let’s try that again!');
+      }
     }
 
     return NextResponse.json({ ok: true });
+  } catch (error) {
+    console.error('Telegram webhook error:', error);
+    return NextResponse.json({ ok: true });
   }
-
-  // Ignore other messages or add more commands here
-  return NextResponse.json({ ok: true });
 }
