@@ -11,7 +11,7 @@ const google = createGoogleGenerativeAI({
   apiKey: process.env.GOOGLE_GENERATIVE_AI_API_KEY || process.env.GOOGLE_API_KEY || "",
 });
 const cacheService = new CacheService();
-const DEFAULT_GEMINI_MODEL = process.env.GEMINI_MODEL?.trim() || "gemini-2.5-pro";
+const DEFAULT_GEMINI_MODEL = process.env.GEMINI_MODEL?.trim() || "gemini-1.5-pro";
 const isProd = process.env.NODE_ENV === "production";
 
 const BodySchema = z.object({
